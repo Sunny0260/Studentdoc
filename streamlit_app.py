@@ -1,16 +1,15 @@
 import streamlit as st
-import pandas as pd
 import io
-import os
 from crewai import Agent, Task, Crew, Process, LLM
 
 st.set_page_config(page_title="Экспертиза документов студенческих объединений", layout="wide")
 
-# Проверка API ключа
+# Проверка ключа
 if "GOOGLE_API_KEY" not in st.secrets:
     st.error("❌ Добавьте GOOGLE_API_KEY в Secrets Streamlit Cloud")
     st.stop()
 
+# Модель Gemini
 llm = LLM(
     model="gemini/gemini-1.5-flash",
     api_key=st.secrets["GOOGLE_API_KEY"],
@@ -20,76 +19,55 @@ llm = LLM(
 st.title("📄 Система экспертизы документов студенческих объединений")
 st.markdown("---")
 
-# --- Агенты ---
 st.header("1. Настройка агентов")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("Агент-эксперт документов")
-    doc_role = st.text_input("Role", "Эксперт по анализу документов")
-    doc_goal = st.text_area(
-        "Goal",
-        "Проверить документы студенческих организаций и выявить ошибки."
-    )
-    doc_backstory = st.text_area(
-        "Backstory",
-        "Специалист по университетскому документообороту."
-    )
+    role1 = st.text_input("Role", "Эксперт по анализу документов")
+    goal1 = st.text_area("Goal", "Проверить документы студенческих организаций и выявить ошибки.")
+    backstory1 = st.text_area("Backstory", "Специалист по университетскому документообороту.")
 
 with col2:
-    st.subheader("Агент-аналитик отчётов")
-    analyst_role = st.text_input("Role 2", "Аналитик образовательных процессов")
-    analyst_goal = st.text_area(
-        "Goal 2",
-        "Сформировать итоговый аналитический отчёт."
-    )
-    analyst_backstory = st.text_area(
-        "Backstory 2",
-        "Эксперт по подготовке аналитических отчётов для администрации."
-    )
+    role2 = st.text_input("Role 2", "Аналитик образовательных процессов")
+    goal2 = st.text_area("Goal 2", "Подготовить аналитический отчет для администрации.")
+    backstory2 = st.text_area("Backstory 2", "Эксперт по подготовке отчетов.")
 
 st.markdown("---")
 
-# --- Загрузка данных ---
 st.header("2. Загрузка CSV файла")
 
-uploaded_file = st.file_uploader("Загрузите CSV файл с документами", type=["csv"])
+uploaded_file = st.file_uploader("Загрузите CSV файл", type=["csv"])
 
-csv_text = ""
+csv_data = ""
 
 if uploaded_file:
     stringio = io.StringIO(uploaded_file.getvalue().decode("utf-8"))
-    csv_text = stringio.read()
+    csv_data = stringio.read()
 
-csv_text = st.text_area(
-    "Данные для анализа",
-    value=csv_text,
-    height=200
-)
+csv_data = st.text_area("Данные CSV", value=csv_data, height=200)
 
 st.markdown("---")
 
-# --- Анализ ---
 st.header("3. Выполнение анализа")
 
 if st.button("🚀 Запустить экспертизу документов", type="primary"):
 
-    if not csv_text.strip():
+    if not csv_data.strip():
         st.error("Загрузите CSV файл")
     else:
 
-        doc_agent = Agent(
-            role=doc_role,
-            goal=doc_goal,
-            backstory=doc_backstory,
+        agent1 = Agent(
+            role=role1,
+            goal=goal1,
+            backstory=backstory1,
             llm=llm
         )
 
-        analyst_agent = Agent(
-            role=analyst_role,
-            goal=analyst_goal,
-            backstory=analyst_backstory,
+        agent2 = Agent(
+            role=role2,
+            goal=goal2,
+            backstory=backstory2,
             llm=llm
         )
 
@@ -97,44 +75,41 @@ if st.button("🚀 Запустить экспертизу документов"
             description=f"""
 Проанализируй CSV данные документов студенческих организаций.
 
-Найди:
-- ошибки
-- несоответствия
-- рекомендации
+Найди ошибки, проблемы и рекомендации.
 
 Сделай таблицу:
 
 Документ | Проблема | Рекомендация
 
 ДАННЫЕ:
-{csv_text}
+{csv_data}
 """,
-            agent=doc_agent,
+            agent=agent1,
             expected_output="Таблица анализа документов"
         )
 
         task2 = Task(
             description="""
-Подготовь итоговый аналитический отчёт для администрации университета.
-Включи:
+Сделай аналитический отчет.
 
-1. Резюме
-2. Основные проблемы
-3. Таблицу анализа
+Включи:
+1. Исполнительное резюме
+2. Таблицу анализа
+3. Основные проблемы
 4. Рекомендации
 """,
-            agent=analyst_agent,
-            expected_output="Аналитический отчет"
+            agent=agent2,
+            expected_output="Финальный отчет"
         )
 
         crew = Crew(
-            agents=[doc_agent, analyst_agent],
+            agents=[agent1, agent2],
             tasks=[task1, task2],
             process=Process.sequential,
             verbose=True
         )
 
-        with st.status("🤖 Выполняется анализ документов...", expanded=True):
+        with st.status("🤖 Выполняется анализ...", expanded=True):
             result = crew.kickoff()
 
         st.subheader("📊 Результат анализа")
