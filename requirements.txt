@@ -1,7 +1,7 @@
-crewai==0.100.1
 streamlit
+pandas
+crewai==0.95.0
+langchain
+langchain-community
 langchain-google-genai
 python-dotenv
-pydantic==2.9.2
-pydantic-settings==2.6.1
-pandas
