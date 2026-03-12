@@ -11,7 +11,7 @@ if "GOOGLE_API_KEY" not in st.secrets:
 
 # Модель Gemini
 llm = LLM(
-    model="gemini/gemini-1.5-flash",
+    model="google/gemini-1.5-flash",
     api_key=st.secrets["GOOGLE_API_KEY"],
     temperature=0.3
 )
