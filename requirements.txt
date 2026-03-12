@@ -1,8 +1,6 @@
 streamlit
-crewai==0.95.0
-langchain
-langchain-community
-langchain-google-genai
+crewai
 litellm
 pandas
+google-generativeai
 python-dotenv
